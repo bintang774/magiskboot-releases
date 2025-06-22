@@ -1,0 +1,55 @@
+name: Magiskboot CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  magiskboot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validate Inputs and Secrets
+        env:
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }} # telegram chat id
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }} # telegram bot token
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # github token
+        run: |
+          _error() {
+              echo "❌ ERROR: $*"
+              let ret++
+          }
+          ret=0
+          # Check Secrets
+          if [[ -z "$TG_CHAT_ID" ]]; then
+            _error "Missing TG_CHAT_ID secret (Telegram Chat ID)"
+          fi
+          if [[ -z "$TG_BOT_TOKEN" ]]; then
+            _error "Missing TG_BOT_TOKEN secret (Telegram Bot Token)"
+          fi
+          if [[ -z "$GH_TOKEN" ]]; then
+            _error "Missing GH_TOKEN secret (GitHub PAT)"
+          fi
+
+          if [[ $ret -ne 0 ]]; then
+            exit $ret
+          fi
+
+
+      - name: Run Build Script
+        env:
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }} # telegram chat id
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }} # telegram bot token
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # github token
+        run: |
+          chmod +x *.sh
+          ./magiskboot.sh
