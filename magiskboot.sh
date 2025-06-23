@@ -7,11 +7,6 @@ source functions.sh
 magiskrepo="https://api.github.com/repos/topjohnwu/Magisk/releases/latest"
 RELEASE=0
 
-install_package() {
-    sudo apt update
-    sudo apt install -y curl wget unzip git gh
-}
-
 download_magiskapk() {
     local magiskapk_url
     magiskapk_url=$(curl -s "$magiskrepo" | grep "browser_download_url" | grep -Eo 'https://.+Magisk-v[^"]+\.apk' | head -n 1)
@@ -90,7 +85,6 @@ cleanup() {
 
 # ========== MAIN ==========
 mkdir -p magiskboot && cd magiskboot
-install_package
 download_magiskapk
 extract_magiskboot
 
