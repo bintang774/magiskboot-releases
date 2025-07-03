@@ -1,14 +1,10 @@
 #!/bin/bash
-# Copyright (C) https://github.com/bintang774 2025-forever set -euo pipefail
+# Copyright (C) https://github.com/bintang774 2025-forever
+
+set -euo pipefail
 source functions.sh
 magiskrepo="https://api.github.com/repos/topjohnwu/Magisk/releases/latest"
 RELEASE=0
-
-# Check if cmp is installed
-if ! command -v cmp >/dev/null 2>&1; then
-    echo "[ERROR] cmp is not installed. Please install diffutils."
-    exit 1
-fi
 
 # Create directory and change to it
 mkdir -p magiskboot && cd magiskboot
@@ -19,14 +15,11 @@ if [ -z "$magiskapk_url" ]; then
     echo "[ERROR] Failed to get Magisk APK URL"
     exit 1
 fi
-wget "$magiskapk_url" -O magisk.zip
+wget -q "$magiskapk_url" -O magisk.zip
 
 # Extract magiskboot
 mkdir -p magisk_extracted
-if ! unzip -q magisk.zip -d magisk_extracted; then
-    echo "[ERROR] Failed современных unzip"
-    exit 1
-fi
+unzip -q magisk.zip -d magisk_extracted
 
 # Define architecture map
 declare -A arch_map=(
@@ -37,13 +30,13 @@ declare -A arch_map=(
 )
 
 # Extract magiskboot for each architecture
-for dir in "${!arch_map[@]}"; do
-    magiskboot_path="magisk_extracted/lib/$dir/libmagiskboot.so"
+for arch in "${!arch_map[@]}"; do
+    magiskboot_path="magisk_extracted/lib/$arch/libmagiskboot.so"
     if [ -f "$magiskboot_path" ]; then
-        cp "$magiskboot_path" "magiskboot-${arch_map[$dir]}"
-        echo "[LOG] Extracted magiskboot-${arch_map[$dir]}"
+        cp "$magiskboot_path" "magiskboot-${arch_map[$arch]}"
+        echo "[LOG] Extracted magiskboot-${arch_map[$arch]}"
     else
-        echo "[WARN] libmagiskboot.so not found for $dir"
+        echo "[WARN] libmagiskboot.so not found for $arch"
     fi
 done
 
@@ -78,7 +71,7 @@ else
     RELEASE=1
 fi
 
-# Create GitHub release
+# Create GitHub release and post to Telegram
 if [ "$RELEASE" == "1" ]; then
     tag_name=$(cat magiskboot_version)
     release_name="MagiskBoot $tag_name"
@@ -90,20 +83,7 @@ if [ "$RELEASE" == "1" ]; then
 
     echo "[LOG] ✅ Release published: $tag_name"
 
-    # Post to Telegram
     repository=$(git config --get remote.origin.url | sed 's/\.git$//')
-    if [ -z "$repository" ]; then
-        echo "[ERROR] Failed to get repository URL."
-        exit 1
-    fi
-    version=$(cat magiskboot_version)
-    if [ -z "$version" ]; then
-        echo "[ERROR] Failed to read magiskboot_version."
-        exit 1
-    fi
-    send_msg "*New magiskboot released!*\n\n[Download Release]($repository/releases/tag/$version)"
+    message="New magiskboot version detected: *$tag_name*\nDownload: [Here]($repository/releases/tag/$tag_name)"
+    send_msg "$message"
 fi
-
-# Cleanup
-echo "[LOG] Cleaning up tempdir..."
-rm -rf magisk_extracted
